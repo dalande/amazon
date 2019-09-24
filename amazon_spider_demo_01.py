@@ -23,29 +23,22 @@ SPIDER_INTERVAL = int(cf.get("Constant", "SPIDER_INTERVAL"))  # 每一轮爬取�
 COOKIE = cf.get("Constant", "COOKIE")
 
 
-def get_ua_random():
-    """从ua池中获取随机ua"""
+def get_ua_proxy_random():
+    """获取代理ip"""
     conn = pymssql.connect(SQL_SERVER, SQL_USER, SQL_PASSWORD, SQL_NAME)
     cursor = conn.cursor()
-    sql = 'select top 1 * from AmazonTestDB.dbo.Table_UserAgent order by NEWID()'
+    # 获取随机代理ip
+    sql = "select top 1 * from Table_Proxy order by NEWID()"
+    cursor.execute(sql)
+    proxy_ip = cursor.fetchone()[1]
+    # 获取随机ua
+    sql = 'select top 1 * from Table_UserAgent order by NEWID()'
     cursor.execute(sql)
     ua = cursor.fetchone()[1]
     cursor.close()
     conn.close()
 
-
-def get_proxy_random():
-    """获取代理ip"""
-    conn = pymssql.connect(SQL_SERVER, SQL_USER, SQL_PASSWORD, SQL_NAME)
-    cursor = conn.cursor()
-    sql = "select ProxyIp from Table_Proxy"
-    cursor.execute(sql)
-    proxy_ip_list = cursor.fetchall()
-    proxy_ip = proxy_ip_list[random.randint(0, len(proxy_ip_list) - 1)]
-    cursor.close()
-    conn.close()
-
-    return proxy_ip[0]
+    return ua, proxy_ip
 
 
 def get_all_record_list():
@@ -73,12 +66,13 @@ def disdinct(all_record_list):
 
 def get_html(keyword_list, page):
     # 爬取列表页面
+    ua, proxy_ip = get_ua_proxy_random()
     headers = {
-        "User-Agent": get_ua_random(),
+        "User-Agent": ua,
         "Cookie": COOKIE,
     }
 
-    proxies = {"http": "http://" + get_proxy_random(), }
+    proxies = {"http": "http://" + proxy_ip, }
 
     url_detail = "https://www.amazon.com/s?k="
     keyword_num = len(keyword_list)
